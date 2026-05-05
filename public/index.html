@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Agriculture</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script defer src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script defer src="/app.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <span class="brand-mark">SA</span>
+          <div>
+            <strong>Smart Agriculture</strong>
+            <small>Decision Support</small>
+          </div>
+        </div>
+        <nav class="nav">
+          <button class="nav-item active" data-view="dashboard"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></button>
+          <button class="nav-item" data-view="soil"><i data-lucide="sprout"></i><span>Soil Input</span></button>
+          <button class="nav-item" data-view="history"><i data-lucide="chart-line"></i><span>History</span></button>
+          <button class="nav-item" data-view="automation"><i data-lucide="droplets"></i><span>Irrigation</span></button>
+          <button class="nav-item" data-view="profile"><i data-lucide="user-round"></i><span>Profile</span></button>
+        </nav>
+        <button class="logout" id="logoutBtn"><i data-lucide="log-out"></i><span>Logout</span></button>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Farm intelligence</p>
+            <h1 id="pageTitle">Dashboard</h1>
+          </div>
+          <div class="status-pill" id="apiStatus"><span></span>Connecting</div>
+        </header>
+
+        <section class="auth-panel" id="authPanel">
+          <div class="auth-media"></div>
+          <div class="auth-card">
+            <div class="tab-row">
+              <button class="tab active" data-auth-tab="login">Login</button>
+              <button class="tab" data-auth-tab="register">Register</button>
+            </div>
+            <form id="loginForm" class="auth-form">
+              <label>Email <input name="email" type="email" required placeholder="farmer@example.com" /></label>
+              <label>Password <input name="password" type="password" required placeholder="At least 6 characters" /></label>
+              <button class="primary-btn" type="submit"><i data-lucide="log-in"></i>Login</button>
+            </form>
+            <form id="registerForm" class="auth-form hidden">
+              <label>Name <input name="name" required placeholder="Your name" /></label>
+              <label>Email <input name="email" type="email" required placeholder="farmer@example.com" /></label>
+              <label>Password <input name="password" type="password" required minlength="6" placeholder="At least 6 characters" /></label>
+              <div class="form-grid two">
+                <label>Location <input name="location" placeholder="District or town" /></label>
+                <label>Farm size <input name="farmSize" type="number" min="0" step="0.1" placeholder="Acres" /></label>
+              </div>
+              <button class="primary-btn" type="submit"><i data-lucide="user-plus"></i>Create account</button>
+            </form>
+            <p class="form-message" id="authMessage"></p>
+          </div>
+        </section>
+
+        <section class="view active" id="dashboardView">
+          <div class="metric-grid">
+            <article class="metric"><span>Moisture</span><strong id="metricMoisture">--</strong><small>Current soil water</small></article>
+            <article class="metric"><span>Soil pH</span><strong id="metricPh">--</strong><small>Acidity balance</small></article>
+            <article class="metric"><span>NPK</span><strong id="metricNpk">--</strong><small>Nutrients index</small></article>
+            <article class="metric"><span>Alerts</span><strong id="metricAlerts">0</strong><small>Unread notices</small></article>
+          </div>
+          <div class="content-grid">
+            <article class="panel">
+              <div class="panel-head"><h2>Latest Recommendation</h2><i data-lucide="clipboard-check"></i></div>
+              <div id="latestRecommendation" class="stack muted">No recommendation yet. Add soil data to get started.</div>
+            </article>
+            <article class="panel">
+              <div class="panel-head"><h2>Notifications</h2><i data-lucide="bell"></i></div>
+              <div id="notificationList" class="stack muted">No alerts.</div>
+            </article>
+          </div>
+        </section>
+
+        <section class="view" id="soilView">
+          <form id="soilForm" class="panel form-panel">
+            <div class="panel-head">
+              <h2>Record Soil Data</h2>
+              <i data-lucide="flask-conical"></i>
+            </div>
+            <div class="form-grid two">
+              <label>Crop
+                <select name="crop" required>
+                  <option value="Maize">Maize</option>
+                  <option value="Beans">Beans</option>
+                  <option value="Cassava">Cassava</option>
+                  <option value="Millet">Millet</option>
+                  <option value="Other">Other</option>
+                </select>
+              </label>
+              <label>Input source
+                <select name="source">
+                  <option value="manual">Manual</option>
+                  <option value="sensor">Sensor</option>
+                </select>
+              </label>
+            </div>
+            <div class="form-grid three">
+              <label>Moisture % <input name="moisture" type="number" min="0" max="100" required value="32" /></label>
+              <label>Soil pH <input name="ph" type="number" min="0" max="14" step="0.1" required value="5.4" /></label>
+              <label>Nitrogen <input name="nitrogen" type="number" min="0" required value="28" /></label>
+              <label>Phosphorus <input name="phosphorus" type="number" min="0" required value="18" /></label>
+              <label>Potassium <input name="potassium" type="number" min="0" required value="35" /></label>
+            </div>
+            <button class="primary-btn" type="submit"><i data-lucide="wand-sparkles"></i>Generate recommendation</button>
+            <p class="form-message" id="soilMessage"></p>
+          </form>
+          <article class="panel">
+            <div class="panel-head"><h2>Generated Advice</h2><i data-lucide="list-checks"></i></div>
+            <div id="generatedAdvice" class="stack muted">Advice will appear here after submission.</div>
+          </article>
+        </section>
+
+        <section class="view" id="historyView">
+          <article class="panel">
+            <div class="panel-head"><h2>Farm Records</h2><i data-lucide="database"></i></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Date</th><th>Crop</th><th>Moisture</th><th>pH</th><th>N</th><th>P</th><th>K</th></tr></thead>
+                <tbody id="historyTable"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section class="view" id="automationView">
+          <article class="panel">
+            <div class="panel-head"><h2>Irrigation Control</h2><i data-lucide="power"></i></div>
+            <div class="automation-grid">
+              <div>
+                <p class="muted">Automation support is prepared for pump integrations. Use manual override now, and connect hardware later through the backend API.</p>
+                <div id="farmList" class="stack"></div>
+              </div>
+              <div class="control-tile">
+                <i data-lucide="droplet"></i>
+                <strong id="pumpState">Pump ready</strong>
+                <button class="secondary-btn" id="pumpToggle" type="button">Toggle pump</button>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section class="view" id="profileView">
+          <form id="profileForm" class="panel form-panel">
+            <div class="panel-head"><h2>Profile</h2><i data-lucide="settings"></i></div>
+            <div class="form-grid two">
+              <label>Name <input name="name" required /></label>
+              <label>Location <input name="location" /></label>
+              <label>Farm size <input name="farmSize" type="number" min="0" step="0.1" /></label>
+            </div>
+            <button class="primary-btn" type="submit"><i data-lucide="save"></i>Save profile</button>
+            <p class="form-message" id="profileMessage"></p>
+          </form>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
