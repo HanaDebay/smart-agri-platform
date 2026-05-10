@@ -13,7 +13,8 @@ dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 5000;
-const mongoUri = (process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/smart_agriculture').trim();
+const isProduction = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
+const mongoUri = (process.env.MONGODB_URI || (isProduction ? '' : 'mongodb://127.0.0.1:27017/smart_agriculture')).trim();
 const jwtSecret = process.env.JWT_SECRET || 'development_secret_change_me';
 let dbConnectionPromise;
 
@@ -112,6 +113,10 @@ function explainMongoError(error) {
 }
 
 async function connectDb() {
+  if (!mongoUri) {
+    throw new Error('MONGODB_URI is not configured');
+  }
+
   if (mongoose.connection.readyState === 1) {
     return mongoose.connection;
   }
@@ -255,7 +260,10 @@ app.use('/api', async (req, res, next) => {
     return next();
   } catch (error) {
     explainMongoError(error);
-    return res.status(500).json({ message: 'Database connection failed' });
+    return res.status(500).json({
+      message: 'Database connection failed',
+      code: error.message.includes('MONGODB_URI') ? 'DB_CONFIG_MISSING' : 'DB_CONNECTION_FAILED'
+    });
   }
 });
 
