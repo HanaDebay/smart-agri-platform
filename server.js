@@ -13,7 +13,7 @@ dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 5000;
-const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/smart_agriculture';
+const mongoUri = (process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/smart_agriculture').trim();
 const jwtSecret = process.env.JWT_SECRET || 'development_secret_change_me';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -401,5 +401,15 @@ mongoose
   })
   .catch((error) => {
     console.error('MongoDB connection failed:', error.message);
+    if (error.message.includes('querySrv')) {
+      console.error('Atlas DNS lookup failed. Check internet access, DNS settings, and whether your network allows SRV lookups for mongodb+srv:// connection strings.');
+      console.error('If SRV lookups are blocked, copy the standard mongodb:// connection string from MongoDB Atlas instead of the mongodb+srv:// string.');
+    }
+    if (error.message.includes('bad auth') || error.message.includes('Authentication failed')) {
+      console.error('Atlas authentication failed. Check the Database Access username/password and rotate the password if it was shared.');
+    }
+    if (error.message.includes('IP') || error.message.includes('whitelist')) {
+      console.error('Atlas network access failed. Add your current IP address in Atlas Network Access, or use 0.0.0.0/0 only for development.');
+    }
     process.exit(1);
   });
