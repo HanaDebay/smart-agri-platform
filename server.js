@@ -15,6 +15,7 @@ const app = express();
 const port = process.env.PORT || 5000;
 const mongoUri = (process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/smart_agriculture').trim();
 const jwtSecret = process.env.JWT_SECRET || 'development_secret_change_me';
+let dbConnectionPromise;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -90,11 +91,46 @@ const notificationSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-const User = mongoose.model('User', userSchema);
-const Farm = mongoose.model('Farm', farmSchema);
-const SoilData = mongoose.model('SoilData', soilDataSchema);
-const Recommendation = mongoose.model('Recommendation', recommendationSchema);
-const Notification = mongoose.model('Notification', notificationSchema);
+const User = mongoose.models.User || mongoose.model('User', userSchema);
+const Farm = mongoose.models.Farm || mongoose.model('Farm', farmSchema);
+const SoilData = mongoose.models.SoilData || mongoose.model('SoilData', soilDataSchema);
+const Recommendation = mongoose.models.Recommendation || mongoose.model('Recommendation', recommendationSchema);
+const Notification = mongoose.models.Notification || mongoose.model('Notification', notificationSchema);
+
+function explainMongoError(error) {
+  console.error('MongoDB connection failed:', error.message);
+  if (error.message.includes('querySrv')) {
+    console.error('Atlas DNS lookup failed. Check internet access, DNS settings, and whether your network allows SRV lookups for mongodb+srv:// connection strings.');
+    console.error('If SRV lookups are blocked, copy the standard mongodb:// connection string from MongoDB Atlas instead of the mongodb+srv:// string.');
+  }
+  if (error.message.includes('bad auth') || error.message.includes('Authentication failed')) {
+    console.error('Atlas authentication failed. Check the Database Access username/password and rotate the password if it was shared.');
+  }
+  if (error.message.includes('IP') || error.message.includes('whitelist')) {
+    console.error('Atlas network access failed. Add your current IP address in Atlas Network Access, or use 0.0.0.0/0 only for development.');
+  }
+}
+
+async function connectDb() {
+  if (mongoose.connection.readyState === 1) {
+    return mongoose.connection;
+  }
+
+  if (!dbConnectionPromise) {
+    dbConnectionPromise = mongoose.connect(mongoUri, {
+      serverSelectionTimeoutMS: 8000,
+      maxPoolSize: 5
+    });
+  }
+
+  try {
+    await dbConnectionPromise;
+    return mongoose.connection;
+  } catch (error) {
+    dbConnectionPromise = null;
+    throw error;
+  }
+}
 
 function signToken(user) {
   return jwt.sign(
@@ -212,6 +248,16 @@ function recommendationRules(input) {
     actions
   };
 }
+
+app.use('/api', async (req, res, next) => {
+  try {
+    await connectDb();
+    return next();
+  } catch (error) {
+    explainMongoError(error);
+    return res.status(500).json({ message: 'Database connection failed' });
+  }
+});
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected' });
@@ -392,24 +438,17 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-mongoose
-  .connect(mongoUri)
-  .then(() => {
-    app.listen(port, () => {
-      console.log(`Smart Agriculture app running on http://localhost:${port}`);
+if (!process.env.VERCEL) {
+  connectDb()
+    .then(() => {
+      app.listen(port, () => {
+        console.log(`Smart Agriculture app running on http://localhost:${port}`);
+      });
+    })
+    .catch((error) => {
+      explainMongoError(error);
+      process.exit(1);
     });
-  })
-  .catch((error) => {
-    console.error('MongoDB connection failed:', error.message);
-    if (error.message.includes('querySrv')) {
-      console.error('Atlas DNS lookup failed. Check internet access, DNS settings, and whether your network allows SRV lookups for mongodb+srv:// connection strings.');
-      console.error('If SRV lookups are blocked, copy the standard mongodb:// connection string from MongoDB Atlas instead of the mongodb+srv:// string.');
-    }
-    if (error.message.includes('bad auth') || error.message.includes('Authentication failed')) {
-      console.error('Atlas authentication failed. Check the Database Access username/password and rotate the password if it was shared.');
-    }
-    if (error.message.includes('IP') || error.message.includes('whitelist')) {
-      console.error('Atlas network access failed. Add your current IP address in Atlas Network Access, or use 0.0.0.0/0 only for development.');
-    }
-    process.exit(1);
-  });
+}
+
+export default app;
